@@ -1,53 +1,35 @@
+require('dotenv').config();
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
 const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
 const path = require('path');
+const db = require('./db');
 
 const app = express();
-const port = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-
-// Configuração do banco
-const pool = new Pool({
-  user: 'sidnei',
-  host: 'localhost',
-  database: 'postgres',
-  password: 'xrDK2@#2MGXvE9',
-  port: 5432,
-});
-
-// APIs existentes (exemplo Blaze)
-app.get('/api/stats/blaze', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM (SELECT * FROM resultdoubleblaze ORDER BY created_at DESC LIMIT 50) AS ultimos_registros ORDER BY created_at');
-    res.json(rows);
-  } catch (err) {
-    console.error('Erro na consulta Blaze:', err);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
-
-// API Jonbet
-app.get('/api/stats/jonbet', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM (SELECT * FROM resultdoublejon ORDER BY created_at DESC LIMIT 50) AS ultimos_registros ORDER BY created_at');
-    res.json(rows);
-  } catch (err) {
-    console.error('Erro na consulta Jonbet:', err);
-    res.status(500).json({ error: 'Erro interno' });
-  }
-});
-
-// Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Rota raiz que envia o index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+app.get('/api/results/:site', async (req, res) => {
+  const site = req.params.site;
+  let tableName;
+  if (site === 'blaze') {
+    tableName = 'resultdoubleblaze';
+  } else if (site === 'jonbet') {
+    tableName = 'resultdoublejon';
+  } else {
+    return res.status(400).json({ error: 'Invalid site' });
+  }
+
+  try {
+    const result = await db.query(`SELECT * FROM ${tableName} ORDER BY created_at ASC LIMIT 100`);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('DB error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
-// Start do servidor
-app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
