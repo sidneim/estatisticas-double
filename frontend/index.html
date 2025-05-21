@@ -1,55 +1,85 @@
-<body class="bg-gray-900 text-white">
-  <div id="loader" class="flex items-center justify-center h-screen">
-    <p>Carregando...</p>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estatísticas Double</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen">
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center text-red-500">Estatísticas Double</h1>
+
+    <div class="flex justify-center space-x-4 mb-6">
+      <button onclick="loadData('blaze')" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded">
+        Blaze
+      </button>
+      <button onclick="loadData('jonbet')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
+        Jonbet
+      </button>
+    </div>
+
+    <div id="cards-container" class="flex flex-wrap flex-row-reverse gap-4 justify-end">
+    <!-- <div id="cards-container" class="flex flex-wrap gap-4 justify-start"> -->
+      <!-- Cards serão inseridos aqui -->
+    </div>
+
+    <footer class="text-center text-xs text-gray-500 mt-10">
+      © 2025 Estatísticas Double • Desenvolvido por Sidnei
+    </footer>
   </div>
 
-  <div id="results" class="hidden p-4 max-w-5xl mx-auto grid grid-cols-auto-fit gap-4"></div>
-
   <script>
-    const loader = document.getElementById('loader');
-    const results = document.getElementById('results');
-
-    async function fetchResults(site) {
-      try {
-        const res = await fetch(`/api/results/${site}`);
-        const data = await res.json();
-
-        loader.style.display = 'none';
-        results.style.display = 'grid';
-
-        results.innerHTML = data.map(item => {
-          const colorClass = getColorClass(item.color, site);
-          return `
-            <div class="p-4 rounded shadow ${colorClass}" title="Horário: ${new Date(item.created_at).toLocaleTimeString()} - Número: ${item.roll}">
-              <div class="text-sm">${new Date(item.created_at).toLocaleTimeString()}</div>
-              <div class="text-xl font-bold">${item.roll}</div>
-            </div>
-          `;
-        }).join('');
-      } catch (e) {
-        loader.innerText = 'Erro ao carregar dados.';
-      }
-    }
-
-    function getColorClass(color, site) {
-      if(site === 'jonbet') {
-        switch(color) {
-          case 0: return 'bg-gray-700';
-          case 1: return 'bg-black';
-          case 2: return 'bg-green-600';
-          default: return 'bg-gray-600';
+    function getColorStyle(color, site) {
+      if (site === 'jonbet') {
+        switch (color) {
+          case 0: return 'bg-gray-300 text-black';    // Branco
+          case 1: return 'bg-black text-white';        // Preto
+          case 2: return 'bg-green-600 text-white';    // Verde
         }
       } else {
-        switch(color) {
-          case 0: return 'bg-gray-700';
-          case 1: return 'bg-black';
-          case 2: return 'bg-red-600';
-          default: return 'bg-gray-600';
+        switch (color) {
+          case 0: return 'bg-gray-300 text-black';     // Branco
+          case 1: return 'bg-black text-white';         // Preto
+          case 2: return 'bg-red-600 text-white';       // Vermelho
         }
       }
+      return 'bg-gray-500 text-white';
     }
 
-    // Troque 'blaze' por 'jonbet' para testar o outro site
-    fetchResults('blaze');
+    function loadData(site) {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '<p class="w-full text-center text-gray-400 animate-pulse">Carregando...</p>';
+
+      fetch(`/api/stats/${site}`)
+        .then(res => res.json())
+        .then(data => {
+          container.innerHTML = '';
+
+          if (data.length === 0) {
+            container.innerHTML = '<p class="w-full text-center text-red-400">Nenhum dado encontrado</p>';
+            return;
+          }
+
+          data.forEach(row => {
+            const datetime = new Date(row.created_at);
+            const hora = datetime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            const div = document.createElement('div');
+            div.className = `rounded-lg p-3 shadow-md text-center ${getColorStyle(row.color, site)}`;
+            div.setAttribute('title', `ID: ${row.id}\nData: ${datetime.toLocaleString()}\nCor: ${row.color}\nNúmero: ${row.roll}`);
+            div.innerHTML = `
+              <div class="text-sm mb-1">${hora}</div>
+              <div class="text-2xl font-bold">${row.roll}</div>
+            `;
+            container.appendChild(div);
+          });
+        })
+        .catch(err => {
+          console.error(err);
+          container.innerHTML = '<p class="w-full text-center text-red-400">Erro ao carregar dados</p>';
+        });
+    }
   </script>
 </body>
+</html>
