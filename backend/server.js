@@ -20,7 +20,7 @@ const pool = new Pool({
 // APIs existentes (exemplo Blaze)
 app.get('/api/stats/blaze', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM (SELECT * FROM resultdoubleblaze ORDER BY created_at DESC LIMIT 50) AS ultimos_registros ORDER BY created_at');
+    const { rows } = await pool.query('SELECT * FROM resultdoubleblaze ORDER BY created_at DESC LIMIT 50');
     res.json(rows);
   } catch (err) {
     console.error('Erro na consulta Blaze:', err);
@@ -31,7 +31,7 @@ app.get('/api/stats/blaze', async (req, res) => {
 // API Jonbet
 app.get('/api/stats/jonbet', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM (SELECT * FROM resultdoublejon ORDER BY created_at DESC LIMIT 50) AS ultimos_registros ORDER BY created_at');
+    const { rows } = await pool.query('SELECT * FROM resultdoublejon ORDER BY created_at DESC LIMIT 50');
     res.json(rows);
   } catch (err) {
     console.error('Erro na consulta Jonbet:', err);
