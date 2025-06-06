@@ -1,66 +1,145 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Estatísticas Blaze e Jonbet</title>
-<style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  button { margin: 5px; padding: 10px; }
-  table { border-collapse: collapse; width: 100%; margin-top: 15px; }
-  th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-  th { background-color: #333; color: white; }
-  .container { max-width: 900px; margin: auto; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Estatísticas Double</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      padding: 10px;
+      margin: 0;
+    }
+
+    .controls {
+      padding: 10px;
+    }
+
+    .grid {
+      display: flex;
+      flex-direction: column;
+      padding: 0 10px 20px 10px;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .cell {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      color: white;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .cell .time {
+      position: absolute;
+      bottom: -18px;
+      font-size: 10px;
+      color: white;
+    }
+
+    .cell[data-color='1'] {
+      background-color: red;
+    }
+
+    .cell[data-color='2'] {
+      background-color: black;
+    }
+
+    .cell[data-color='0'] {
+      background-color: white;
+      color: black;
+    }
+
+    .cell.empty {
+      background-color: #222;
+      border: 1px solid #444;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-  <h1>Estatísticas Blaze e Jonbet - Double</h1>
-  <div>
+  <h1>Estatísticas Double</h1>
+  <div class="controls">
     <button onclick="loadData('blaze')">Carregar Blaze</button>
     <button onclick="loadData('jonbet')">Carregar Jonbet</button>
   </div>
-  <table id="results-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Data / Hora</th>
-        <th>Cor</th>
-        <th>Roll</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+  <div class="grid" id="grid"></div>
 
-<script>
-async function loadData(site) {
-  const tbody = document.querySelector('#results-table tbody');
-  tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
-  try {
-    const res = await fetch(`/api/stats/${site}`);
-    if (!res.ok) throw new Error('Erro ao buscar dados');
-    const data = await res.json();
-    if (data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4">Nenhum dado encontrado</td></tr>';
-      return;
+  <script>
+    async function loadData(site) {
+      const res = await fetch(`/api/stats/${site}`);
+      const data = await res.json();
+
+      // Agrupar por hora:minuto
+      const grouped = {};
+      data.forEach((item) => {
+        const date = new Date(item.created_at);
+        const hour = String(date.getHours()).padStart(2, '0');
+        const minute = String(date.getMinutes()).padStart(2, '0');
+        const key = `${hour}:${minute}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push({ ...item, hour, minute, date });
+      });
+
+      const minutesOrdered = Object.keys(grouped).sort().reverse(); // Mais novos primeiro
+      const gridContainer = document.getElementById('grid');
+      gridContainer.innerHTML = '';
+
+      // Criar linhas de 10 minutos (20 pedras)
+      for (let i = 0; i < minutesOrdered.length; i += 10) {
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        for (let j = 0; j < 10; j++) {
+          const time = minutesOrdered[i + j];
+          for (let k = 0; k < 2; k++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+
+            if (time && grouped[time] && grouped[time][k]) {
+              const item = grouped[time][k];
+              const color = site === 'jonbet' && item.color === 1 ? 'green' : item.color;
+              cell.setAttribute('data-color', item.color);
+              if (site === 'jonbet' && item.color === 1) {
+                cell.style.backgroundColor = 'green';
+              }
+              cell.textContent = item.roll;
+              cell.title = new Date(item.created_at).toLocaleString();
+            } else {
+              cell.classList.add('empty');
+            }
+
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'time';
+            timeLabel.textContent = time ?? '';
+            cell.appendChild(timeLabel);
+
+            row.appendChild(cell);
+          }
+        }
+
+        gridContainer.appendChild(row);
+      }
     }
-    tbody.innerHTML = '';
-    data.forEach(row => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${row.id}</td>
-        <td>${new Date(row.created_at).toLocaleString()}</td>
-        <td>${row.color}</td>
-        <td>${row.roll}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="4">Erro ao carregar dados</td></tr>';
-    console.error(err);
-  }
-}
-</script>
+  </script>
 </body>
 </html>
