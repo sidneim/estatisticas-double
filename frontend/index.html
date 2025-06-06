@@ -32,11 +32,11 @@
     .row {
       display: flex;
       gap: 6px;
-      flex-wrap: nowrap;
+      flex-wrap: wrap; /* Changed to wrap to prevent overflow on smaller screens */
     }
 
     .cell {
-      width: 40px;
+      width: 55px; /* Increased width to accommodate the time label */
       height: 40px;
       border-radius: 10px;
       display: flex;
@@ -47,13 +47,18 @@
       color: white;
       position: relative;
       flex-shrink: 0;
+      padding-bottom: 20px; /* Add padding to make space for the time label */
     }
 
     .cell .time {
       position: absolute;
-      bottom: -18px;
+      bottom: 2px; /* Adjusted bottom position */
       font-size: 10px;
       color: white;
+      white-space: nowrap; /* Prevent time from wrapping to next line */
+      text-align: center; /* Center the time text */
+      width: 100%; /* Make it take full width of the cell to center properly */
+      left: 0; /* Align to the left of the cell */
     }
 
     .cell[data-color='1'] {
@@ -100,44 +105,67 @@
         grouped[key].push({ ...item, hour, minute, date });
       });
 
-      const minutesOrdered = Object.keys(grouped).sort().reverse(); // Mais novos primeiro
       const gridContainer = document.getElementById('grid');
       gridContainer.innerHTML = '';
 
-      // Criar linhas de 10 minutos (20 pedras)
-      for (let i = 0; i < minutesOrdered.length; i += 10) {
+      // Determine the earliest and latest hour:minute from data
+      // This will help us determine the full range of minutes to display
+      let allKeys = Object.keys(grouped).sort();
+      if (allKeys.length === 0) return; // No data to display
+
+      // Calculate the start of the earliest 10-minute block that has data
+      let firstDataTime = new Date(grouped[allKeys[0]][0].created_at);
+      firstDataTime.setMinutes(Math.floor(firstDataTime.getMinutes() / 10) * 10, 0, 0);
+
+      // Get the current time and round down to the nearest 10 minutes to start from the current block
+      let currentTime = new Date();
+      currentTime.setMinutes(Math.floor(currentTime.getMinutes() / 10) * 10, 0, 0);
+
+      // Iterate backwards from the current 10-minute block until before the first data block
+      while (currentTime.getTime() >= firstDataTime.getTime() || gridContainer.children.length < 3) { // Ensure at least 3 rows are displayed
         const row = document.createElement('div');
         row.className = 'row';
 
-        for (let j = 0; j < 10; j++) {
-          const time = minutesOrdered[i + j];
-          for (let k = 0; k < 2; k++) {
+        for (let j = 0; j < 10; j++) { // 0 to 9 minutes within the block
+          const targetMinuteTime = new Date(currentTime);
+          targetMinuteTime.setMinutes(currentTime.getMinutes() + j);
+
+          const hour = String(targetMinuteTime.getHours()).padStart(2, '0');
+          const minute = String(targetMinuteTime.getMinutes()).padStart(2, '0');
+          const key = `${hour}:${minute}`;
+
+          for (let k = 0; k < 2; k++) { // Two cells per minute
             const cell = document.createElement('div');
             cell.className = 'cell';
 
-            if (time && grouped[time] && grouped[time][k]) {
-              const item = grouped[time][k];
-              const color = site === 'jonbet' && item.color === 1 ? 'green' : item.color;
-              cell.setAttribute('data-color', item.color);
-              if (site === 'jonbet' && item.color === 1) {
-                cell.style.backgroundColor = 'green';
+            if (grouped[key] && grouped[key][k]) {
+              const item = grouped[key][k];
+              // Ensure color '1' for jonbet is green as per previous context, but use data-color for CSS styling
+              const dataColor = site === 'jonbet' && item.color === 1 ? 'green' : item.color;
+              cell.setAttribute('data-color', item.color); // Keep original data-color for general styling
+              if (site === 'jonbet' && item.color === 1) { // Apply specific green background for jonbet color 1
+                  cell.style.backgroundColor = 'green';
               }
               cell.textContent = item.roll;
               cell.title = new Date(item.created_at).toLocaleString();
             } else {
-              cell.classList.add('empty');
+              cell.style.backgroundColor = 'black'; // Fill with black if no data
+              cell.textContent = ''; // Ensure no old content remains
             }
 
+            // Always add the time label to each cell, even if it's the same minute
             const timeLabel = document.createElement('div');
             timeLabel.className = 'time';
-            timeLabel.textContent = time ?? '';
+            timeLabel.textContent = key; // Display the full hour:minute
             cell.appendChild(timeLabel);
 
             row.appendChild(cell);
           }
         }
-
         gridContainer.appendChild(row);
+
+        // Move to the previous 10-minute block
+        currentTime.setMinutes(currentTime.getMinutes() - 10);
       }
     }
   </script>
