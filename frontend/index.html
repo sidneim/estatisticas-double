@@ -105,11 +105,15 @@
         grouped[key].push({ ...item, hour, minute, date });
       });
 
+      // Sort items within each minute group by created_at in ascending order
+      for (const key in grouped) {
+        grouped[key].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      }
+
       const gridContainer = document.getElementById('grid');
       gridContainer.innerHTML = '';
 
       // Determine the earliest and latest hour:minute from data
-      // This will help us determine the full range of minutes to display
       let allKeys = Object.keys(grouped).sort();
       if (allKeys.length === 0) return; // No data to display
 
@@ -140,23 +144,21 @@
 
             if (grouped[key] && grouped[key][k]) {
               const item = grouped[key][k];
-              // Ensure color '1' for jonbet is green as per previous context, but use data-color for CSS styling
               const dataColor = site === 'jonbet' && item.color === 1 ? 'green' : item.color;
-              cell.setAttribute('data-color', item.color); // Keep original data-color for general styling
-              if (site === 'jonbet' && item.color === 1) { // Apply specific green background for jonbet color 1
+              cell.setAttribute('data-color', item.color);
+              if (site === 'jonbet' && item.color === 1) {
                   cell.style.backgroundColor = 'green';
               }
               cell.textContent = item.roll;
               cell.title = new Date(item.created_at).toLocaleString();
             } else {
-              cell.style.backgroundColor = 'black'; // Fill with black if no data
-              cell.textContent = ''; // Ensure no old content remains
+              cell.style.backgroundColor = 'black';
+              cell.textContent = '';
             }
 
-            // Always add the time label to each cell, even if it's the same minute
             const timeLabel = document.createElement('div');
             timeLabel.className = 'time';
-            timeLabel.textContent = key; // Display the full hour:minute
+            timeLabel.textContent = key;
             cell.appendChild(timeLabel);
 
             row.appendChild(cell);
@@ -164,7 +166,6 @@
         }
         gridContainer.appendChild(row);
 
-        // Move to the previous 10-minute block
         currentTime.setMinutes(currentTime.getMinutes() - 10);
       }
     }
