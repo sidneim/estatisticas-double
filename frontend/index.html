@@ -53,31 +53,27 @@
       font-weight: bold;
       font-size: 18px;
       color: white;
-      /* Aplicando a borda padrão a todas as células */
       border: 1px solid #444; /* Borda cinza suave para todas as células */
     }
 
-    /* Nova classe para células vazias com contorno (agora apenas gerencia o fundo) */
+    /* Nova classe para células vazias com contorno (apenas gerencia o fundo) */
     .cell.empty-cell-outline {
       background-color: transparent; /* Fundo transparente */
       color: transparent; /* Esconde qualquer texto residual se houver */
     }
 
-    /* Estilos para as pedras de cor - remover border: none; para que herdem a borda padrão */
+    /* Estilos para as pedras de cor */
     .cell[data-color='1'] {
       background-color: red;
-      /* border: none; REMOVIDO */
     }
 
     .cell[data-color='2'] {
       background-color: black;
-      /* border: none; REMOVIDO */
     }
 
     .cell[data-color='0'] {
       background-color: white;
       color: black;
-      /* border: none; REMOVIDO */
     }
 
     /* O label de tempo agora é um elemento irmão da célula, não aninhado */
@@ -92,14 +88,21 @@
 <body>
   <h1>Estatísticas Double</h1>
   <div class="controls">
-    <button onclick="loadData('blaze')">Carregar Blaze</button>
-    <button onclick="loadData('jonbet')">Carregar Jonbet</button>
+    <button id="blazeBtn">Carregar Blaze</button>
+    <button id="jonbetBtn">Carregar Jonbet</button>
   </div>
   <div class="grid" id="grid"></div>
 
   <script>
+    let currentSite = 'blaze'; // Variável para armazenar o site atualmente carregado
+    let intervalId = null; // Para armazenar o ID do intervalo e poder limpá-lo
+
     async function loadData(site) {
-      const res = await fetch(`/api/stats/${site}`);
+      if (site) { // Apenas atualiza currentSite se um site for passado (clique no botão)
+        currentSite = site;
+      }
+
+      const res = await fetch(`/api/stats/${currentSite}`); // Usa currentSite
       const data = await res.json();
 
       const grouped = {};
@@ -150,7 +153,7 @@
             if (grouped[key] && grouped[key][k]) {
               const item = grouped[key][k];
               cell.setAttribute('data-color', item.color);
-              if (site === 'jonbet' && item.color === 1) {
+              if (currentSite === 'jonbet' && item.color === 1) { // Usa currentSite aqui também
                   cell.style.backgroundColor = 'green';
               }
               cell.textContent = item.roll;
@@ -175,6 +178,25 @@
         currentTime.setMinutes(currentTime.getMinutes() - 10);
       }
     }
+
+    // Função para iniciar o intervalo de atualização
+    function startAutoUpdate(site) {
+      if (intervalId) {
+        clearInterval(intervalId); // Limpa qualquer intervalo anterior
+      }
+      currentSite = site; // Define o site atual
+      loadData(site); // Carrega os dados imediatamente
+      intervalId = setInterval(() => loadData(), 30000); // Atualiza a cada 30 segundos (30000 ms)
+    }
+
+    // Adiciona event listeners aos botões
+    document.getElementById('blazeBtn').addEventListener('click', () => startAutoUpdate('blaze'));
+    document.getElementById('jonbetBtn').addEventListener('click', () => startAutoUpdate('jonbet'));
+
+    // Inicia a atualização automática com o site padrão (Blaze) ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+      startAutoUpdate('blaze');
+    });
   </script>
 </body>
 </html>
