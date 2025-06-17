@@ -3,66 +3,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Estatísticas Double</title>
+  <title>Histórico Double</title> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
       background-color: #111;
       color: white;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', Arial, sans-serif;
+    }
+
+    /* Wrapper para centralizar título e controles */
+    .header-content {
+      padding: 10px;
+      margin: 0 auto;
+      max-width: 1200px; /* Alinha com o max-width do grid */
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start; /* Alinha à esquerda dentro do wrapper */
+      gap: 10px; /* Espaço entre elementos */
     }
 
     h1 {
-      padding: 10px;
       margin: 0;
+      font-size: 2em;
+    }
+
+    /* Estilo para a tagline */
+    .tagline {
+      font-size: 0.9em;
+      color: #bbb;
+      margin-top: -5px; /* Ajuste para aproximar do título */
+      margin-bottom: 10px; /* Espaço para os botões */
     }
 
     .controls {
-      padding: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Estilo para os botões */
+    .controls button {
+      background-color: #333;
+      color: white;
+      border: 1px solid #555;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .controls button:hover {
+      background-color: #555;
+      border-color: #777;
+    }
+
+    .controls button.active { /* Estilo para botão ativo */
+        background-color: #007bff; /* Ou uma cor que combine com seu tema */
+        border-color: #007bff;
     }
 
     .grid {
       display: flex;
-      flex-direction: column;
-      padding: 0 10px 20px 10px;
-      gap: 20px;
+      flex-direction: column; /* As linhas se empilham verticalmente */
+      padding: 0 10px 20px 10px; /* Padding geral para o grid */
+      gap: 10px; /* Espaço entre as linhas de 10 minutos no desktop */
+      width: 100%; /* GARANTE QUE O GRID OCUPE TODA A LARGURA */
+      max-width: 1200px; /* Limita a largura máxima para telas muito grandes */
+      margin: 0 auto; /* Centraliza o grid em telas largas */
     }
 
+    /* REMOVIDO: .row-wrapper e .row-title não são mais necessários */
+
+    /* Estilos para a linha de pedras (desktop) */
     .row {
       display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
+      gap: 6px; /* Espaço entre as células */
+      flex-wrap: nowrap; /* Impede quebras de linha no desktop */
+      width: 100%; /* GARANTE QUE A LINHA OCUPE TODA A LARGURA DISPONÍVEL */
     }
 
-    /* Contêiner para cada célula + tempo */
     .cell-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      flex-shrink: 0;
+      flex-shrink: 0; /* Impede que as células diminuam */
     }
 
     .cell {
-      width: 45px;
-      height: 45px;
+      width: 40px; /* Tamanho da célula padrão */
+      height: 40px;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 18px;
+      font-size: 14px;
       color: white;
-      border: 1px solid #444; /* Borda cinza suave para todas as células */
+      border: 1px solid #444;
+      position: relative;
+      /* Animação de entrada sutil para células */
+      transition: background-color 0.3s ease, transform 0.2s ease, border-color 0.2s ease;
     }
 
-    /* Nova classe para células vazias com contorno (apenas gerencia o fundo) */
-    .cell.empty-cell-outline {
-      background-color: transparent; /* Fundo transparente */
-      color: transparent; /* Esconde qualquer texto residual se houver */
+    /* Estilo para células vazias */
+    .cell.empty {
+      background-color: #222; /* Fundo cinza para vazias */
+      border: 1px solid #444; /* Borda sólida para vazias */
+      color: #555; /* Texto cinza escuro para vazias */
     }
 
-    /* Estilos para as pedras de cor */
+    /* Skeleton Loader para células vazias */
+    .cell.empty.skeleton {
+        background: linear-gradient(90deg, #222 25%, #333 50%, #222 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+
     .cell[data-color='1'] {
       background-color: red;
     }
@@ -73,36 +137,167 @@
 
     .cell[data-color='0'] {
       background-color: white;
-      color: black;
+      color: black; /* Garante preto mais forte para texto branco */
     }
 
-    /* O label de tempo agora é um elemento irmão da célula, não aninhado */
     .time {
       font-size: 10px;
       color: white;
       white-space: nowrap;
       margin-top: 2px;
     }
+
+    /* Destaque da última pedra */
+    .cell.latest {
+        animation: pulse 1s ease-out forwards; /* Animação para a última pedra */
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(0.8); opacity: 0; }
+        50% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+
+    /* Tooltips */
+    .tooltip {
+      position: absolute;
+      bottom: 120%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+      white-space: pre-line; /* Permite quebras de linha */
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+      z-index: 10;
+      border: 1px solid #444;
+    }
+
+    .cell:hover .tooltip {
+      opacity: 1;
+    }
+
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent transparent rgba(0, 0, 0, 0.85) transparent;
+    }
+
+    .tooltip.red {
+      background-color: #8b0000;
+      color: #fff;
+    }
+
+    .tooltip.red::after {
+      border-color: transparent transparent #8b0000 transparent;
+    }
+
+    .tooltip.black {
+      background-color: #333;
+      color: #fff;
+    }
+
+    .tooltip.black::after {
+      border-color: transparent transparent #333 transparent;
+    }
+
+    .tooltip.white {
+      background-color: #f0f0f0;
+      color: #000; /* Cor do texto do tooltip branco */
+    }
+
+    .tooltip.white::after {
+      border-color: transparent transparent #f0f0f0 transparent;
+    }
+
+    /* ************************************** */
+    /* ESTILOS PARA DISPOSITIVOS MÓVEIS */
+    /* ************************************** */
+    @media (max-width: 768px) {
+      .header-content { /* Ajustes para mobile */
+        align-items: flex-start; /* Alinha à esquerda no mobile */
+        padding: 10px 5px;
+      }
+
+      .tagline { /* Ajustes para tagline no mobile */
+          font-size: 0.8em;
+          text-align: center; /* Centraliza a tagline no mobile */
+          width: 100%;
+      }
+
+      .grid {
+        gap: 10px; /* Espaço menor entre as linhas visuais em mobile */
+        padding: 0 5px 10px 5px; /* Padding menor em mobile */
+        max-width: none; /* Remove max-width para mobile */
+      }
+
+      /* REMOVIDO: .row-wrapper e .row-title foram completamente removidos */
+
+      .row {
+        flex-direction: row; /* Itens da esquerda para a direita no fluxo */
+        flex-wrap: wrap-reverse; /* Novas "linhas" visuais aparecem acima */
+        gap: 4px; /* Espaço menor entre células em mobile */
+        justify-content: flex-end; /* Alinha o conteúdo da linha à direita */
+        width: auto; /* Deixa a largura automática para o wrap funcionar */
+      }
+      
+      .cell {
+        width: 38px; /* Tamanho da célula ajustado para mobile */
+        height: 38px;
+        font-size: 16px;
+      }
+
+      .time {
+        font-size: 9px;
+        margin-top: 1px;
+      }
+
+      .tooltip {
+        font-size: 10px;
+        padding: 4px 6px;
+        bottom: 110%; /* Ajuste para não ficar tão longe da célula */
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Estatísticas Double</h1>
-  <div class="controls">
-    <button id="blazeBtn">Carregar Blaze</button>
-    <button id="jonbetBtn">Carregar Jonbet</button>
+  <div class="header-content">
+    <h1>Histórico Double</h1> <p class="tagline">Estatísticas em Tempo Real para Blaze e Jonbet.</p> <div class="controls">
+      <button id="blazeBtn">Blaze</button>
+      <button id="jonbetBtn">Jonbet</button>
+    </div>
   </div>
   <div class="grid" id="grid"></div>
 
   <script>
-    let currentSite = 'blaze'; // Variável para armazenar o site atualmente carregado
-    let intervalId = null; // Para armazenar o ID do intervalo e poder limpá-lo
+    let currentSite = 'blaze';
+    let intervalId = null;
+    let latestRollId = null; // Para rastrear o último roll e aplicar animação
+
+    // Função para atualizar o estado ativo dos botões
+    function updateButtonState() {
+        document.querySelectorAll('.controls button').forEach(button => {
+            if (button.id === `${currentSite}Btn`) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+    }
 
     async function loadData(site) {
-      if (site) { // Apenas atualiza currentSite se um site for passado (clique no botão)
-        currentSite = site;
-      }
+      if (site) currentSite = site;
+      updateButtonState(); // Atualiza o estado dos botões
 
-      const res = await fetch(`/api/stats/${currentSite}`); // Usa currentSite
+      const res = await fetch(`/api/stats/${currentSite}`);
       const data = await res.json();
 
       const grouped = {};
@@ -122,80 +317,170 @@
       const gridContainer = document.getElementById('grid');
       gridContainer.innerHTML = '';
 
-      let allKeys = Object.keys(grouped).sort();
-      if (allKeys.length === 0) return;
+      const minutesOrdered = Object.keys(grouped).sort((a, b) => {
+          const [hourA, minA] = a.split(':').map(Number);
+          const [hourB, minB] = b.split(':').map(Number);
+          const timeValueA = hourA * 60 + minA;
+          const timeValueB = hourB * 60 + minB;
+          return timeValueB - timeValueA; // Ordem decrescente (mais novos primeiro)
+      });
+      
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
-      let firstDataTime = new Date(grouped[allKeys[0]][0].created_at);
-      firstDataTime.setMinutes(Math.floor(firstDataTime.getMinutes() / 10) * 10, 0, 0);
+      // Determina o ID do roll mais recente para destaque
+      let newLatestRollId = null;
+      if (minutesOrdered.length > 0 && grouped[minutesOrdered[0]] && grouped[minutesOrdered[0]][0]) {
+          newLatestRollId = grouped[minutesOrdered[0]][0].id;
+      }
 
-      let currentTime = new Date();
-      currentTime.setMinutes(Math.floor(currentTime.getMinutes() / 10) * 10, 0, 0);
+      // Função auxiliar para criar células e tooltips
+      function createCellElement(item, key, siteName) {
+          const cellContainer = document.createElement('div');
+          cellContainer.className = 'cell-container';
 
-      while (currentTime.getTime() >= firstDataTime.getTime() || gridContainer.children.length < 3) {
-        const row = document.createElement('div');
-        row.className = 'row';
+          const cell = document.createElement('div');
+          cell.className = 'cell';
 
-        for (let j = 0; j < 10; j++) {
-          const targetMinuteTime = new Date(currentTime);
-          targetMinuteTime.setMinutes(currentTime.getMinutes() + j);
-
-          const hour = String(targetMinuteTime.getHours()).padStart(2, '0');
-          const minute = String(targetMinuteTime.getMinutes()).padStart(2, '0');
-          const key = `${hour}:${minute}`;
-
-          for (let k = 0; k < 2; k++) {
-            const cellContainer = document.createElement('div');
-            cellContainer.className = 'cell-container';
-
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-
-            if (grouped[key] && grouped[key][k]) {
-              const item = grouped[key][k];
+          if (item) {
               cell.setAttribute('data-color', item.color);
-              if (currentSite === 'jonbet' && item.color === 1) { // Usa currentSite aqui também
+              if (siteName === 'jonbet' && item.color === 1) { // Jonbet usa verde para cor 1
                   cell.style.backgroundColor = 'green';
               }
               cell.textContent = item.roll;
-              cell.title = new Date(item.created_at).toLocaleString();
-            } else {
-              cell.classList.add('empty-cell-outline');
-              cell.textContent = '';
-            }
 
-            const timeLabel = document.createElement('div');
-            timeLabel.className = 'time';
-            timeLabel.textContent = key;
+              // Adiciona a classe 'latest' se for a última pedra carregada E for um novo roll
+              if (item.id === newLatestRollId && item.id !== latestRollId) {
+                  cell.classList.add('latest');
+              }
 
-            cellContainer.appendChild(cell);
-            cellContainer.appendChild(timeLabel);
+              const tooltip = document.createElement('div');
+              tooltip.className = 'tooltip';
+              const timeString = new Date(item.created_at).toLocaleString();
+              let tooltipContent = '';
+              let tooltipClass = '';
 
-            row.appendChild(cellContainer);
+              if (item.color === 1) {
+                  tooltipClass = 'red';
+                  tooltipContent = `🔥 Vermelho - Roll ${item.roll}\n${timeString}`;
+              } else if (item.color === 2) {
+                  tooltipClass = 'black';
+                  tooltipContent = `⚫ Preto - Roll ${item.roll}\n${timeString}`;
+              } else { // color 0
+                  tooltipClass = 'white';
+                  tooltipContent = `⚪ Branco - Roll ${item.roll}\n${timeString}`;
+              }
+              tooltip.classList.add(tooltipClass);
+              tooltip.textContent = tooltipContent;
+              cell.appendChild(tooltip);
+          } else {
+              cell.classList.add('empty');
+              cell.classList.add('skeleton'); /* Adiciona classe skeleton para células vazias */
           }
+
+          const timeLabel = document.createElement('div');
+          timeLabel.className = 'time';
+          timeLabel.textContent = key ?? ''; // Garante que exiba o HH:MM ou vazio
+
+          cellContainer.appendChild(cell);
+          cellContainer.appendChild(timeLabel);
+          return cellContainer;
+      }
+
+      if (isMobile) {
+        // Lógica para Mobile: Linha contínua
+        const singleRow = document.createElement('div');
+        singleRow.className = 'row'; // Esta row usará os estilos mobile do CSS
+
+        const maxMinutesToDisplay = 60 * 24; // Ex: últimas 24 horas para mobile
+        let minutesCount = 0;
+
+        for (const key of minutesOrdered) { 
+            if (minutesCount >= maxMinutesToDisplay) break;
+
+            // Para cada minuto, adiciona as 2 células (se existirem)
+            for (let k = 0; k < 2; k++) { 
+                const cellElement = createCellElement(grouped[key] ? grouped[key][k] : null, key, currentSite);
+                singleRow.prepend(cellElement); // Adiciona as células no INÍCIO da singleRow
+            }
+            minutesCount++;
         }
-        gridContainer.appendChild(row);
+        gridContainer.appendChild(singleRow);
 
-        currentTime.setMinutes(currentTime.getMinutes() - 10);
+      } else {
+        // Lógica para Desktop: Linhas fixas de 0 a 9 minutos
+        let currentTime = new Date();
+        currentTime.setSeconds(0,0);
+        currentTime.setMinutes(Math.floor(currentTime.getMinutes() / 10) * 10);
+
+        let oldestDataTime = new Date();
+        if (minutesOrdered.length > 0) {
+            const oldestKey = minutesOrdered[minutesOrdered.length - 1];
+            const [hour, minute] = oldestKey.split(':').map(Number);
+            oldestDataTime.setHours(hour, minute, 0, 0);
+            oldestDataTime.setMinutes(Math.floor(oldestDataTime.getMinutes() / 10) * 10);
+        } else {
+            oldestDataTime.setHours(currentTime.getHours() - 24, 0, 0, 0);
+        }
+
+        while (currentTime.getTime() >= oldestDataTime.getTime() || gridContainer.children.length < 3) {
+          // REMOVIDO: Criação do rowWrapper e rowTitle
+          // const rowWrapper = document.createElement('div');
+          // rowWrapper.className = 'row-wrapper';
+
+          // const rowTitle = document.createElement('div');
+          // rowTitle.className = 'row-title';
+          // const startMinute = String(currentTime.getMinutes()).padStart(2, '0');
+          // const endMinuteDate = new Date(currentTime);
+          // endMinuteDate.setMinutes(currentTime.getMinutes() + 9);
+          // const endMinute = String(endMinuteDate.getMinutes()).padStart(2, '0');
+          // const rowHour = String(currentTime.getHours()).padStart(2, '0');
+          // rowTitle.textContent = `${rowHour}:${startMinute} - ${rowHour}:${endMinute}`;
+
+          const row = document.createElement('div');
+          row.className = 'row';
+
+          for (let j = 0; j < 10; j++) {
+            const targetMinuteTime = new Date(currentTime);
+            targetMinuteTime.setMinutes(currentTime.getMinutes() + j);
+
+            const hour = String(targetMinuteTime.getHours()).padStart(2, '0');
+            const minute = String(targetMinuteTime.getMinutes()).padStart(2, '0');
+            const key = `${hour}:${minute}`;
+
+            for (let k = 0; k < 2; k++) {
+              const cellElement = createCellElement(grouped[key] ? grouped[key][k] : null, key, currentSite);
+              row.appendChild(cellElement);
+            }
+          }
+          
+          // REMOVIDO: Adição do rowTitle ao rowWrapper
+          // rowWrapper.appendChild(rowTitle);
+          // rowWrapper.appendChild(row);
+          // gridContainer.appendChild(rowWrapper); // Adiciona a linha diretamente
+          gridContainer.appendChild(row); // Adiciona a linha diretamente ao gridContainer
+
+          currentTime.setMinutes(currentTime.getMinutes() - 10);
+        }
       }
+      latestRollId = newLatestRollId; // Atualiza o ID do último roll carregado
     }
 
-    // Função para iniciar o intervalo de atualização
     function startAutoUpdate(site) {
-      if (intervalId) {
-        clearInterval(intervalId); // Limpa qualquer intervalo anterior
-      }
-      currentSite = site; // Define o site atual
-      loadData(site); // Carrega os dados imediatamente
-      intervalId = setInterval(() => loadData(), 30000); // Atualiza a cada 30 segundos (30000 ms)
+      if (intervalId) clearInterval(intervalId);
+      currentSite = site;
+      loadData(site);
+      intervalId = setInterval(() => loadData(), 5000);
     }
 
-    // Adiciona event listeners aos botões
     document.getElementById('blazeBtn').addEventListener('click', () => startAutoUpdate('blaze'));
     document.getElementById('jonbetBtn').addEventListener('click', () => startAutoUpdate('jonbet'));
 
-    // Inicia a atualização automática com o site padrão (Blaze) ao carregar a página
     document.addEventListener('DOMContentLoaded', () => {
       startAutoUpdate('blaze');
+    });
+
+    window.addEventListener('resize', () => {
+      loadData();
     });
   </script>
 </body>
